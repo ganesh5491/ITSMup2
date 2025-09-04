@@ -56,9 +56,9 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ✅ Proper bind for Render & Replit
-  const port = parseInt(process.env.PORT || "5000", 10);
-  const host = "127.0.0.1";
+  // ✅ Proper bind for Render & Replit - Force port 5000 for Replit compatibility
+  const port = 5000;
+  const host = "0.0.0.0";
 
   server.listen(port, host, () => {
     log(`🚀 Server running at http://${host}:${port}`);
