@@ -1,0 +1,93 @@
+I am working on an ITSM project. Repo: https://github.com/cybaemtech/ITSM_up
+
+Live site: https://itsm-yq9r.onrender.com/
+
+I want to implement role-based views and permissions for three roles: Admin, User, and Agent.
+This should work along with Login & Registration system.
+
+Requirements
+Login & Registration
+
+At registration, users default to User role.
+
+Only one Admin should exist in the system.
+
+Admin can edit a user role (User → Agent or Admin).
+
+When a User role is changed to Agent, that user should only see the Agent dashboard after login (not before).
+
+Role-based access must be checked on login session to decide which dashboard loads.
+
+User
+
+Create Ticket Page with fields:
+
+Ticket Title
+
+Category
+
+Subcategory
+
+Priority
+
+Support Type
+
+Due Date (optional)
+
+Description
+
+Upload File
+
+User can:
+
+View their previous tickets
+
+View full ticket details
+
+Edit and delete their own tickets
+
+Agent
+
+Agent view is the same as Admin view, except Administration section is hidden.
+
+Additional rules:
+
+Agent can only see tickets assigned to them.
+
+Agent can update fields:
+
+Current Status (Open, In Progress, Closed)
+
+Assigned To (Unassigned, Admin, Agent names – fetch agent list dynamically)
+
+Priority (High, Medium, Low)
+
+Add comments on their own tickets
+
+Agent can view full ticket details for their tickets only.
+
+Admin
+
+Keep the existing Admin view as is (Users, Categories, Reports, etc.).
+
+Admin can edit user roles (User, Admin, Agent).
+
+Admin is unique (only one super-admin).
+
+Important: Keep all previous data and tickets visible in the Admin panel, even if a user’s role changes.
+
+What I need from you (Replit):
+
+Implement role-based access control in frontend + backend.
+
+Add a role field to user schema (default: User).
+
+Create middleware to protect routes based on role.
+
+Ensure conditional rendering of dashboards/views based on role.
+
+When Admin updates a user role → reflect changes after login so the user sees the correct dashboard.
+
+Add proper visibility restrictions (User can’t see Agent/Admin data, Agent can’t see Admin section, etc.).
+
+Ensure Admin panel always shows full history of users and tickets, regardless of role changes.
