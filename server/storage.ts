@@ -9,7 +9,7 @@ import {
 } from "@shared/schema";
 import session from "express-session";
 import { db } from "./db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, or, desc, sql } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 import createMemoryStore from "memorystore";
 import { pool } from "./db";
@@ -50,6 +50,15 @@ export interface IStorage {
   getFilteredTickets(filters: { status?: string, priority?: string, categoryId?: number }): Promise<Ticket[]>;
   getTicketsCount(): Promise<{ [key: string]: number }>;
   getDashboardStats(): Promise<DashboardStats>;
+  
+  // New role-based methods
+  getTicketsByAgent(agentId: number): Promise<TicketWithRelations[]>;
+  getTicketsByUser(userId: number): Promise<TicketWithRelations[]>;
+  getFilteredTicketsForAgent(agentId: number, filters: { status?: string, priority?: string, categoryId?: number }): Promise<TicketWithRelations[]>;
+  getFilteredTicketsForUser(userId: number, filters: { status?: string, priority?: string, categoryId?: number }): Promise<TicketWithRelations[]>;
+  getDashboardStatsForAgent(agentId: number): Promise<DashboardStats>;
+  getDashboardStatsForUser(userId: number): Promise<DashboardStats>;
+  getUsersByRoles(roles: string[]): Promise<User[]>;
   
   // Comment operations
   getComment(id: number): Promise<Comment | undefined>;
@@ -559,20 +568,6 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(users);
   }
 
-  async getUserByUsernameOrEmail(username: string, email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(
-      sql`${users.username} = ${username} OR ${users.email} = ${email}`
-    );
-    return user;
-  }
-
-  async getUserById(id: number): Promise<User | undefined> {
-    return await this.getUser(id);
-  }
-
-  async deleteUser(id: number): Promise<void> {
-    await db.delete(users).where(eq(users.id, id));
-  }
 
   // Category operations
   async getCategory(id: number): Promise<Category | undefined> {
@@ -847,6 +842,184 @@ export class DatabaseStorage implements IStorage {
       avgResponseTime: "4.2 hours", // This could be calculated from actual data
       slaComplianceRate: "94%" // This could be calculated from actual data
     };
+  }
+
+  // New role-based methods
+  async getTicketsByAgent(agentId: number): Promise<TicketWithRelations[]> {
+    try {
+      // Get tickets assigned to agent OR created by agent
+      const agentTickets = await db.select().from(tickets)
+        .where(sql`${tickets.assignedToId} = ${agentId} OR ${tickets.createdById} = ${agentId}`);
+      
+      const ticketsWithRelations = [];
+      
+      for (const ticket of agentTickets) {
+        const ticketWithRelations = await this.getTicketWithRelations(ticket.id);
+        if (ticketWithRelations) {
+          ticketsWithRelations.push(ticketWithRelations);
+        }
+      }
+      
+      return ticketsWithRelations;
+    } catch (error) {
+      console.error("Error getting agent tickets:", error);
+      throw error;
+    }
+  }
+
+  async getTicketsByUser(userId: number): Promise<TicketWithRelations[]> {
+    try {
+      const userTickets = await db.select().from(tickets)
+        .where(eq(tickets.createdById, userId));
+      
+      const ticketsWithRelations = [];
+      
+      for (const ticket of userTickets) {
+        const ticketWithRelations = await this.getTicketWithRelations(ticket.id);
+        if (ticketWithRelations) {
+          ticketsWithRelations.push(ticketWithRelations);
+        }
+      }
+      
+      return ticketsWithRelations;
+    } catch (error) {
+      console.error("Error getting user tickets:", error);
+      throw error;
+    }
+  }
+
+  async getFilteredTicketsForAgent(agentId: number, filters: { status?: string, priority?: string, categoryId?: number }): Promise<TicketWithRelations[]> {
+    try {
+      const conditions = [sql`${tickets.assignedToId} = ${agentId} OR ${tickets.createdById} = ${agentId}`];
+      
+      if (filters.status) {
+        conditions.push(eq(tickets.status, filters.status));
+      }
+      
+      if (filters.priority) {
+        conditions.push(eq(tickets.priority, filters.priority));
+      }
+      
+      if (filters.categoryId) {
+        conditions.push(
+          sql`${tickets.categoryId} = ${filters.categoryId} OR ${tickets.subcategoryId} = ${filters.categoryId}`
+        );
+      }
+      
+      const query = db.select().from(tickets).where(and(...conditions));
+      
+      const filteredTickets = await query;
+      const ticketsWithRelations = [];
+      
+      for (const ticket of filteredTickets) {
+        const ticketWithRelations = await this.getTicketWithRelations(ticket.id);
+        if (ticketWithRelations) {
+          ticketsWithRelations.push(ticketWithRelations);
+        }
+      }
+      
+      return ticketsWithRelations;
+    } catch (error) {
+      console.error("Error getting filtered agent tickets:", error);
+      throw error;
+    }
+  }
+
+  async getFilteredTicketsForUser(userId: number, filters: { status?: string, priority?: string, categoryId?: number }): Promise<TicketWithRelations[]> {
+    try {
+      const conditions = [eq(tickets.createdById, userId)];
+      
+      if (filters.status) {
+        conditions.push(eq(tickets.status, filters.status));
+      }
+      
+      if (filters.priority) {
+        conditions.push(eq(tickets.priority, filters.priority));
+      }
+      
+      if (filters.categoryId) {
+        conditions.push(
+          sql`${tickets.categoryId} = ${filters.categoryId} OR ${tickets.subcategoryId} = ${filters.categoryId}`
+        );
+      }
+      
+      const query = db.select().from(tickets).where(and(...conditions));
+      
+      const filteredTickets = await query;
+      const ticketsWithRelations = [];
+      
+      for (const ticket of filteredTickets) {
+        const ticketWithRelations = await this.getTicketWithRelations(ticket.id);
+        if (ticketWithRelations) {
+          ticketsWithRelations.push(ticketWithRelations);
+        }
+      }
+      
+      return ticketsWithRelations;
+    } catch (error) {
+      console.error("Error getting filtered user tickets:", error);
+      throw error;
+    }
+  }
+
+  async getDashboardStatsForAgent(agentId: number): Promise<DashboardStats> {
+    try {
+      const agentTickets = await this.getTicketsByAgent(agentId);
+      
+      const counts = {
+        open: agentTickets.filter(t => t.status === 'open').length,
+        inProgress: agentTickets.filter(t => t.status === 'in-progress').length,
+        resolved: agentTickets.filter(t => t.status === 'resolved').length,
+        closed: agentTickets.filter(t => t.status === 'closed').length
+      };
+      
+      return {
+        openTickets: counts.open,
+        inProgressTickets: counts.inProgress,
+        resolvedTickets: counts.resolved,
+        closedTickets: counts.closed,
+        avgResponseTime: "1.8 hours",
+        slaComplianceRate: "96%"
+      };
+    } catch (error) {
+      console.error("Error getting agent dashboard stats:", error);
+      throw error;
+    }
+  }
+
+  async getDashboardStatsForUser(userId: number): Promise<DashboardStats> {
+    try {
+      const userTickets = await this.getTicketsByUser(userId);
+      
+      const counts = {
+        open: userTickets.filter(t => t.status === 'open').length,
+        inProgress: userTickets.filter(t => t.status === 'in-progress').length,
+        resolved: userTickets.filter(t => t.status === 'resolved').length,
+        closed: userTickets.filter(t => t.status === 'closed').length
+      };
+      
+      return {
+        openTickets: counts.open,
+        inProgressTickets: counts.inProgress,
+        resolvedTickets: counts.resolved,
+        closedTickets: counts.closed,
+        avgResponseTime: "N/A",
+        slaComplianceRate: "N/A"
+      };
+    } catch (error) {
+      console.error("Error getting user dashboard stats:", error);
+      throw error;
+    }
+  }
+
+  async getUsersByRoles(roles: string[]): Promise<User[]> {
+    try {
+      return await db.select().from(users)
+        .where(sql`${users.role} = ANY(${roles})`);
+    } catch (error) {
+      console.error("Error getting users by roles:", error);
+      throw error;
+    }
   }
 
   // Comment operations

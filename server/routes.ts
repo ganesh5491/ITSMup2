@@ -175,7 +175,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get("/api/tickets/filter", async (req, res) => {
+  // Get all tickets with role-based filtering
+  app.get("/api/tickets", isAuthenticated, async (req, res) => {
+    try {
+      let tickets;
+      
+      if (req.user?.role === "admin") {
+        // Admin can see all tickets
+        tickets = await storage.getAllTickets();
+      } else if (req.user?.role === "agent") {
+        // Agent can see tickets assigned to them or created by them
+        tickets = await storage.getTicketsByAgent(req.user!.id);
+      } else {
+        // Users can only see their own tickets
+        tickets = await storage.getTicketsByUser(req.user!.id);
+      }
+      
+      res.json(tickets);
+    } catch (error) {
+      console.error("Get tickets error:", error);
+      res.status(500).json({ message: "Failed to fetch tickets" });
+    }
+  });
+
+  app.get("/api/tickets/filter", isAuthenticated, async (req, res) => {
     try {
       const { status, priority, categoryId } = req.query;
       const filters: { status?: string; priority?: string; categoryId?: number } = {};
@@ -184,7 +207,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (priority) filters.priority = priority as string;
       if (categoryId) filters.categoryId = parseInt(categoryId as string);
       
-      const tickets = await storage.getFilteredTickets(filters);
+      let tickets;
+      
+      if (req.user?.role === "admin") {
+        tickets = await storage.getFilteredTickets(filters);
+      } else if (req.user?.role === "agent") {
+        tickets = await storage.getFilteredTicketsForAgent(req.user!.id, filters);
+      } else {
+        tickets = await storage.getFilteredTicketsForUser(req.user!.id, filters);
+      }
+      
       res.json(tickets);
     } catch (error) {
       res.status(500).json({ message: "Failed to filter tickets" });
@@ -536,26 +568,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Dashboard stats
-  app.get("/api/dashboard", async (req, res) => {
+  // Dashboard stats with role-based access
+  app.get("/api/dashboard", isAuthenticated, async (req, res) => {
     try {
-      const stats = await storage.getDashboardStats();
+      let stats;
+      
+      if (req.user?.role === "admin") {
+        // Admin gets global stats
+        stats = await storage.getDashboardStats();
+      } else if (req.user?.role === "agent") {
+        // Agent gets stats for their assigned tickets
+        stats = await storage.getDashboardStatsForAgent(req.user!.id);
+      } else {
+        // User gets stats for their own tickets
+        stats = await storage.getDashboardStatsForUser(req.user!.id);
+      }
+      
       res.json(stats);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch dashboard stats" });
     }
   });
   
-  // USER MANAGEMENT ROUTES (No authentication required as per replit.md)
-  app.get("/api/users", async (req, res) => {
-  try {
-    const users = await storage.getAllUsers();
-    res.json(users);
-  } catch (err) {
-    console.error("Error in /api/users:", err); // 🔍 This line is key
-    res.status(500).json({ error: "Failed to fetch users" });
-  }
-});
+  // USER MANAGEMENT ROUTES - Fixed authentication
+  app.get("/api/users", isAuthenticated, async (req, res) => {
+    try {
+      let users;
+      
+      if (req.user?.role === "admin") {
+        // Admin can see all users
+        users = await storage.getAllUsers();
+      } else if (req.user?.role === "agent") {
+        // Agent can see only agents and users (for ticket assignment)
+        users = await storage.getUsersByRoles(["agent", "user"]);
+      } else {
+        // Regular users can only see their own profile
+        users = [req.user];
+      }
+      
+      res.json(users);
+    } catch (err) {
+      console.error("Error in /api/users:", err);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
 
 
   app.post('/api/users', isAuthenticated, requireRole(['admin']), async (req, res) => {
