@@ -222,7 +222,7 @@ export default function HomePage() {
                             }`}>{ticket.priority}</span>
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                            {formatDate(ticket.createdAt)}
+                            {ticket.createdAt ? formatDate(ticket.createdAt) : 'N/A'}
                           </td>
                         </tr>
                       ))}

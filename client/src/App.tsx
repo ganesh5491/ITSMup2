@@ -34,7 +34,7 @@ function Router() {
       <ProtectedRoute 
         path="/all-tickets" 
         component={AllTicketsPage} 
-        requiredRole={["admin", "agent"]}
+        requiredRole={["admin"]}
       />
       <ProtectedRoute 
         path="/admin/reports" 

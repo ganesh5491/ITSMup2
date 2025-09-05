@@ -101,8 +101,8 @@ export default function TicketEditPage() {
     if (ticket) {
       form.setValue("title", ticket.title);
       form.setValue("description", ticket.description);
-      form.setValue("priority", ticket.priority);
-      form.setValue("status", ticket.status);
+      form.setValue("priority", ticket.priority as "low" | "medium" | "high" | "urgent");
+      form.setValue("status", ticket.status as "open" | "in-progress" | "resolved" | "closed");
       form.setValue("categoryId", ticket.categoryId?.toString() || "");
       form.setValue("assignedToId", ticket.assignedToId?.toString() || "unassigned");
     }
@@ -134,7 +134,7 @@ export default function TicketEditPage() {
 
   // Handle form submission
   const onSubmit = (data: TicketEditFormValues) => {
-    const formData = {
+    const formData: any = {
       title: data.title,
       description: data.description,
       priority: data.priority,
@@ -148,12 +148,15 @@ export default function TicketEditPage() {
 
     // Assignment rules:
     // - Admin: can assign to anyone
-    // - Agent: can only assign tickets they created, and only to themselves
+    // - Agent: can only assign tickets they created when admin hasn't assigned already
     // - User: cannot modify assignment
     if (user?.role === "admin") {
       formData.assignedToId = data.assignedToId && data.assignedToId !== "unassigned" ? parseInt(data.assignedToId) : null;
     } else if (user?.role === "agent" && ticket?.createdById === user.id) {
-      formData.assignedToId = data.assignedToId && data.assignedToId !== "unassigned" ? parseInt(data.assignedToId) : null;
+      // Agent can only modify assignment if admin hasn't already assigned it
+      if (!ticket.assignedToId || ticket.assignedToId === user.id) {
+        formData.assignedToId = data.assignedToId && data.assignedToId !== "unassigned" ? parseInt(data.assignedToId) : null;
+      }
     }
     // Users cannot modify assignment, so we don't include it in formData
 
@@ -373,8 +376,11 @@ export default function TicketEditPage() {
                             const isDisabled = () => {
                               if (user?.role === "user") return true;
                               if (user?.role === "agent") {
-                                // Agent can only edit assignment for tickets they created
-                                return ticket?.createdById !== user.id;
+                                // Agent can only edit assignment for tickets they created AND only when admin hasn't assigned it
+                                if (ticket?.createdById !== user.id) return true;
+                                // If admin has already assigned the ticket (and it's not to this agent), disable editing
+                                if (ticket?.assignedToId && ticket.assignedToId !== user.id) return true;
+                                return false;
                               }
                               return false; // Admin has full access
                             };
@@ -424,8 +430,10 @@ export default function TicketEditPage() {
                                   <p className="text-sm text-muted-foreground">
                                     {user?.role === "user" 
                                       ? "You can view assignment but cannot modify it"
-                                      : user?.role === "agent" 
+                                      : user?.role === "agent" && ticket?.createdById !== user.id
                                       ? "Only admins can modify assignment for tickets not created by you"
+                                      : user?.role === "agent" && ticket?.assignedToId && ticket.assignedToId !== user.id
+                                      ? "Admin has already assigned this ticket - you cannot modify the assignment"
                                       : ""
                                     }
                                   </p>

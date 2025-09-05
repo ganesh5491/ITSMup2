@@ -155,7 +155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tickets = await storage.getAssignedTickets(req.user.id);
       } else {
         // User sees only their own tickets
-        tickets = await storage.getUserTickets(req.user.id);
+        tickets = await storage.getUserTickets(req.user!.id);
       }
       
       res.json(tickets);
@@ -175,28 +175,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get all tickets with role-based filtering
-  app.get("/api/tickets", isAuthenticated, async (req, res) => {
-    try {
-      let tickets;
-      
-      if (req.user?.role === "admin") {
-        // Admin can see all tickets
-        tickets = await storage.getAllTickets();
-      } else if (req.user?.role === "agent") {
-        // Agent can see tickets assigned to them or created by them
-        tickets = await storage.getTicketsByAgent(req.user!.id);
-      } else {
-        // Users can only see their own tickets
-        tickets = await storage.getTicketsByUser(req.user!.id);
-      }
-      
-      res.json(tickets);
-    } catch (error) {
-      console.error("Get tickets error:", error);
-      res.status(500).json({ message: "Failed to fetch tickets" });
-    }
-  });
 
   app.get("/api/tickets/filter", isAuthenticated, async (req, res) => {
     try {

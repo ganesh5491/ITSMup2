@@ -418,8 +418,8 @@ export default function UsersPage(): JSX.Element {
                         <Button type="button" variant="outline" onClick={() => setShowAddUserDialog(false)}>
                           Cancel
                         </Button>
-                        <Button type="submit" disabled={createUserMutation.isLoading}>
-                          {createUserMutation.isLoading ? "Creating..." : "Create User"}
+                        <Button type="submit" disabled={createUserMutation.isPending}>
+                          {createUserMutation.isPending ? "Creating..." : "Create User"}
                         </Button>
                       </DialogFooter>
                     </form>
@@ -661,8 +661,8 @@ export default function UsersPage(): JSX.Element {
                     <Button type="button" variant="outline" onClick={() => setShowEditDialog(false)}>
                       Cancel
                     </Button>
-                    <Button type="submit" disabled={updateUserMutation.isLoading}>
-                      {updateUserMutation.isLoading ? "Saving..." : "Save Changes"}
+                    <Button type="submit" disabled={updateUserMutation.isPending}>
+                      {updateUserMutation.isPending ? "Saving..." : "Save Changes"}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -692,9 +692,9 @@ export default function UsersPage(): JSX.Element {
                     if (!userToDelete) return;
                     deleteUserMutation.mutate(userToDelete.id);
                   }}
-                  disabled={deleteUserMutation.isLoading}
+                  disabled={deleteUserMutation.isPending}
                 >
-                  {deleteUserMutation.isLoading ? "Deleting..." : "Delete"}
+                  {deleteUserMutation.isPending ? "Deleting..." : "Delete"}
                 </Button>
               </DialogFooter>
             </DialogContent>

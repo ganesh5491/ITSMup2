@@ -119,8 +119,8 @@ export default function Sidebar({ isMobile = false, isOpen = true, onClose }: Si
           label="Documentation"
         />
 
-        {/* Support Staff Section (Admin & Agent only) */}
-        {(user?.role === "admin" || user?.role === "agent") && (
+        {/* All Tickets Section (Admin only) */}
+        {user?.role === "admin" && (
           <>
             <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 pb-1 pt-4">
               Support
