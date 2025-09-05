@@ -25,7 +25,7 @@ function Router() {
     <Switch>
       <ProtectedRoute path="/" component={HomePage} />
       <ProtectedRoute path="/tickets" component={TicketsPage} />
-      <ProtectedRoute path="/tickets/new" component={TicketCreatePage} requiredRole={["user"]} />
+      <ProtectedRoute path="/tickets/new" component={TicketCreatePage} requiredRole={["user", "admin", "agent"]} />
       <ProtectedRoute path="/tickets/:id/edit" component={TicketEditPage} />
       <ProtectedRoute path="/tickets/:id" component={TicketDetailPage} />
       <ProtectedRoute path="/knowledge-base" component={KnowledgeBasePage} />
