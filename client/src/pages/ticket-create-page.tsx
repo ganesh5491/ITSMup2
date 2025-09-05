@@ -49,8 +49,10 @@ const createTicketSchema = z.object({
   priority: z.enum(["low", "medium", "high"]).default("medium"),
   supportType: z.enum(["remote", "telephonic", "onsite_visit", "other"]).default("remote"),
   assignedToId: z.string().optional(),
-  contactEmail: z.string().email("Please enter a valid email address").optional(),
-  contactName: z.string().min(2, "Contact name must be at least 2 characters").optional(),
+  contactEmail: z.string().optional().refine((val) => !val || z.string().email().safeParse(val).success, {
+    message: "Please enter a valid email address"
+  }),
+  contactName: z.string().optional(),
   contactPhone: z.string().optional(),
   contactDepartment: z.string().optional(),
   dueDate: z.string().optional(),

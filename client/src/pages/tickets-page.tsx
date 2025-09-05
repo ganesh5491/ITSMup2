@@ -276,9 +276,9 @@ export default function TicketsPage() {
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
                           <Link href={`/tickets/${ticket.id}`}>
-                            <a className="text-sm font-medium text-blue-600 hover:text-blue-800">
+                            <span className="text-sm font-medium text-blue-600 hover:text-blue-800">
                               {ticket.title}
-                            </a>
+                            </span>
                           </Link>
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
@@ -296,11 +296,11 @@ export default function TicketsPage() {
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-2">
-                            <Button variant="ghost" size="icon" asChild>
-                              <Link href={`/tickets/${ticket.id}`}>
+                            <Link href={`/tickets/${ticket.id}`}>
+                              <Button variant="ghost" size="icon">
                                 <Eye className="h-4 w-4 text-blue-600" />
-                              </Link>
-                            </Button>
+                              </Button>
+                            </Link>
                             <Button variant="ghost" size="icon">
                               <MessageSquare className="h-4 w-4 text-gray-600" />
                             </Button>
@@ -319,12 +319,12 @@ export default function TicketsPage() {
                     ? "Try adjusting your filters or search query"
                     : "You haven't created any support tickets yet"}
                 </p>
-                <Button asChild>
-                  <Link href="/tickets/new">
+                <Link href="/tickets/new">
+                  <Button>
                     <Plus className="mr-2 h-4 w-4" />
                     Create your first ticket
-                  </Link>
-                </Button>
+                  </Button>
+                </Link>
               </CardContent>
             )}
 
