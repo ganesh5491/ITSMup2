@@ -9,7 +9,7 @@ import {
 } from "@shared/schema";
 import session from "express-session";
 import { db } from "./db";
-import { eq, and, or, desc, sql } from "drizzle-orm";
+import { eq, and, or, desc, sql, inArray } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 import createMemoryStore from "memorystore";
 import { pool } from "./db";
@@ -1015,7 +1015,7 @@ export class DatabaseStorage implements IStorage {
   async getUsersByRoles(roles: string[]): Promise<User[]> {
     try {
       return await db.select().from(users)
-        .where(sql`${users.role} = ANY(${roles})`);
+        .where(inArray(users.role, roles));
     } catch (error) {
       console.error("Error getting users by roles:", error);
       throw error;
