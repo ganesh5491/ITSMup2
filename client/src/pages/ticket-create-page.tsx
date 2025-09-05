@@ -316,28 +316,31 @@ export default function TicketCreatePage() {
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="priority"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Priority</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select Priority" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="low">Low</SelectItem>
-                              <SelectItem value="medium">Medium</SelectItem>
-                              <SelectItem value="high">High</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    {/* Priority moved to Contact Information section for admin/agent, show here for users */}
+                    {user?.role === "user" && (
+                      <FormField
+                        control={form.control}
+                        name="priority"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Priority</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select Priority" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="low">Low</SelectItem>
+                                <SelectItem value="medium">Medium</SelectItem>
+                                <SelectItem value="high">High</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -365,48 +368,6 @@ export default function TicketCreatePage() {
                       )}
                     />
 
-                    {(user?.role === "admin" || user?.role === "agent") && (
-                      <FormField
-                        control={form.control}
-                        name="assignedToId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Assign To</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select Assignee (Optional)" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="">Unassigned</SelectItem>
-                                {user?.role === "admin" && (
-                                  <>
-                                    {agentUsers.map((agent) => (
-                                      <SelectItem key={agent.id} value={agent.id.toString()}>
-                                        {agent.name} ({agent.role})
-                                      </SelectItem>
-                                    ))}
-                                  </>
-                                )}
-                                {user?.role === "agent" && (
-                                  <SelectItem value={user.id.toString()}>
-                                    {user.name} (myself)
-                                  </SelectItem>
-                                )}
-                              </SelectContent>
-                            </Select>
-                            <FormDescription>
-                              {user?.role === "admin" 
-                                ? "Assign ticket to any agent/admin" 
-                                : "You can only assign tickets to yourself"
-                              }
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
 
                     <FormField
                       control={form.control}
@@ -425,24 +386,31 @@ export default function TicketCreatePage() {
 
                   {(user?.role === "admin" || user?.role === "agent") && (
                     <div className="space-y-4">
-                      <h3 className="text-lg font-medium text-gray-800">Contact Information (Optional)</h3>
+                      <h3 className="text-lg font-medium text-gray-800">Contact Information</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <FormField
                           control={form.control}
                           name="contactEmail"
                           render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Contact (Agent/Admin)</FormLabel>
+                            <FormItem className="md:col-span-2">
+                              <FormLabel>Contact To (Agent Names... Jane Smith) 
+                                <span className="text-xs text-gray-500 ml-1">
+                                  → In this field fetch all the agents data from logged in supabase db → 
+                                  (in this field admin can select or search users name and email both attached in this input field)
+                                </span>
+                              </FormLabel>
                               <Select
                                 onValueChange={(value) => {
                                   handleAgentSelection(value);
+                                  // Also set the assignedToId for the ticket assignment
+                                  form.setValue("assignedToId", value);
                                 }}
                                 value={agentUsers.find(a => a.email === field.value)?.id.toString() || ""}
                                 disabled={isLoadingUsers}
                               >
                                 <FormControl>
                                   <SelectTrigger>
-                                    <SelectValue placeholder="Select Agent/Admin (Optional)" />
+                                    <SelectValue placeholder="Select Agent/Admin - Search by name or email" />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
@@ -457,7 +425,7 @@ export default function TicketCreatePage() {
                                   {filteredAgents.length > 0 ? (
                                     filteredAgents.map((agent) => (
                                       <SelectItem key={agent.id} value={agent.id.toString()}>
-                                        {agent.name} ({agent.email})
+                                        {agent.name} - {agent.email} ({agent.role})
                                       </SelectItem>
                                     ))
                                   ) : (
@@ -468,7 +436,7 @@ export default function TicketCreatePage() {
                                 </SelectContent>
                               </Select>
                               <FormDescription>
-                                Select the agent or admin who will be the main contact for this ticket
+                                Select the agent who will be the main contact and assignee for this ticket
                               </FormDescription>
                               <FormMessage />
                             </FormItem>
@@ -480,9 +448,13 @@ export default function TicketCreatePage() {
                           name="contactName"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Contact Name (Optional)</FormLabel>
+                              <FormLabel>Contact Name 
+                                <span className="text-xs text-gray-500 ml-1">
+                                  → (when admin select agent name or email from contact to field then that fetch contact name automatically here)
+                                </span>
+                              </FormLabel>
                               <FormControl>
-                                <Input placeholder="Enter contact name" {...field} />
+                                <Input placeholder="Auto-filled when agent selected" {...field} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -494,9 +466,13 @@ export default function TicketCreatePage() {
                           name="contactPhone"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Contact Phone (Optional)</FormLabel>
+                              <FormLabel>Contact Phone (Optional) 
+                                <span className="text-xs text-gray-500 ml-1">
+                                  → (it also fetch from Contact To field)
+                                </span>
+                              </FormLabel>
                               <FormControl>
-                                <Input placeholder="Enter phone number" {...field} />
+                                <Input placeholder="Auto-filled when agent selected" {...field} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -508,10 +484,37 @@ export default function TicketCreatePage() {
                           name="contactDepartment"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Contact Department (Optional)</FormLabel>
+                              <FormLabel>Contact Department (Optional) 
+                                <span className="text-xs text-gray-500 ml-1">
+                                  → (it also fetch from Contact To field)
+                                </span>
+                              </FormLabel>
                               <FormControl>
-                                <Input placeholder="Enter department" {...field} />
+                                <Input placeholder="Auto-filled when agent selected" {...field} />
                               </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="priority"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Priority (High, medium, low)</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select Priority" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="high">High</SelectItem>
+                                  <SelectItem value="medium">Medium</SelectItem>
+                                  <SelectItem value="low">Low</SelectItem>
+                                </SelectContent>
+                              </Select>
                               <FormMessage />
                             </FormItem>
                           )}
